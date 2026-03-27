@@ -50,6 +50,8 @@ def get_prs_by_user(repo: str, username: str, state: str = "all") -> str:
     """Get all PRs raised by a specific GitHub user in a repo. repo format: owner/repo-name"""
     r = g.get_repo(repo)
     prs = [format_pr(pr) for pr in r.get_pulls(state=state) if pr.user.login == username]
+    if not prs:
+        return f"No PRs found for user '{username}' in '{repo}' with state='{state}'."
     return json.dumps({"user": username, "total": len(prs), "prs": prs}, indent=2)
 
 
@@ -61,6 +63,8 @@ def get_top_contributors(repo: str, top_n: int = 5) -> str:
     for pr in r.get_pulls(state="all"):
         user = pr.user.login
         counts[user] = counts.get(user, 0) + 1
+    if not counts:
+        return f"No PRs found in '{repo}'."
     sorted_c = sorted(counts.items(), key=lambda x: x[1], reverse=True)[:top_n]
     return json.dumps({"top_contributors": [{"user": u, "pr_count": c} for u, c in sorted_c]}, indent=2)
 
@@ -73,7 +77,9 @@ def get_pr_merge_time(repo: str, limit: int = 50) -> str:
     for pr in r.get_pulls(state="closed")[:limit]:
         if pr.merged_at:
             times.append(hours_between(pr.created_at, pr.merged_at))
-    avg = round(sum(times) / len(times), 2) if times else None
+    if not times:
+        return f"No merged PRs found in '{repo}' to calculate merge time."
+    avg = round(sum(times) / len(times), 2)
     return json.dumps({"average_merge_time_hours": avg, "prs_analyzed": len(times)}, indent=2)
 
 
@@ -88,6 +94,8 @@ def get_stale_prs(repo: str, days: int = 7) -> str:
         age = (now - updated).days
         if age >= days:
             stale.append({**format_pr(pr), "days_since_activity": age})
+    if not stale:
+        return f"Great news! No stale PRs found in '{repo}' (no PRs inactive for more than {days} days)."
     return json.dumps({"stale_prs": stale, "total": len(stale)}, indent=2)
 
 
@@ -96,6 +104,8 @@ def get_open_prs(repo: str) -> str:
     """List all currently open PRs in a repo. repo format: owner/repo-name"""
     r = g.get_repo(repo)
     prs = [format_pr(pr) for pr in r.get_pulls(state="open")]
+    if not prs:
+        return f"No open PRs found in '{repo}'. Everything is merged or closed!"
     return json.dumps({"open_prs": prs, "total": len(prs)}, indent=2)
 
 
