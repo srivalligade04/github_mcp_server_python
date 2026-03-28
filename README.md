@@ -71,7 +71,7 @@ Starts with: sqp_
 
 ```
 Format: owner_reponame
-Example: srivalligade04_ml-for-java-professionals
+Example: srivalligade04_XXprojKeyXX
 ```
 
 ---
@@ -592,7 +592,7 @@ git add . && git commit -m "update" && git push
 
 # Your project details:
 GitHub Repo  : srivalligade04/github_mcp_server_python
-Sonar Project: srivalligade04_ml-for-java-professionals
+Sonar Project: srivalligade04_github_mcp_server_python
 ```
 
 ---
