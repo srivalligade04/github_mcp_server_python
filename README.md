@@ -1,48 +1,74 @@
-# Complete Setup Guide
-## Claude + Python + PyCharm + MCP Server + Agents
+# GitHub MCP Server — AI Agent for PR and Code Quality Analysis
+
+An AI agent that runs 11 tools across SonarCloud and GitHub to give you a complete code quality and PR process report in under 60 seconds. Powered by Claude (Anthropic).
+
+---
+
+## What This Does
+
+You run one command. Claude calls 11 tools automatically — 4 SonarCloud tools and 7 GitHub PR tools — analyzes all the results, and writes a structured report covering code quality, open PRs, team performance, and recommendations.
+
+No manual API calls. No switching between dashboards. One command, one report.
+
+---
+
+## How It Works
+
+```
+python run.py
+      |
+      v
+main_agent.py  (Claude orchestrates everything)
+      |
+      |-- sonar_agent.py      (4 SonarCloud tools)
+      |
+      |-- github_pr_agent.py  (7 GitHub PR tools)
+```
+
+Claude reads the tool definitions, decides which to call, collects the results, and writes the final report. This is called an agentic loop — Claude keeps calling tools until it has everything it needs, then stops and writes the output.
 
 ---
 
 ## Table of Contents
 
-1. [Get All Tokens & API Keys](#1-get-all-tokens--api-keys)
+1. [Get All Tokens and API Keys](#1-get-all-tokens-and-api-keys)
 2. [Claude Setup](#2-claude-setup)
 3. [Python Setup](#3-python-setup)
 4. [PyCharm Setup](#4-pycharm-setup)
-5. [MCP Server Setup](#5-mcp-server-setup)
+5. [MCP Server and Tools](#5-mcp-server-and-tools)
 6. [Project Structure](#6-project-structure)
 7. [Agent Explanations](#7-agent-explanations)
 8. [Run Your Agents](#8-run-your-agents)
 9. [Push to GitHub](#9-push-to-github)
 10. [Troubleshooting](#10-troubleshooting)
+11. [Sample Output](#11-sample-output)
+12. [What to Build Next](#12-what-to-build-next)
 
 ---
 
-## 1. Get All Tokens & API Keys
+## 1. Get All Tokens and API Keys
 
-You need **3 tokens** to run the full agent stack. Get them in this order.
-
----
+You need 3 tokens to run the full agent stack. Get them in this order.
 
 ### 1.1 Anthropic API Key
 
 Used by: `sonar_agent.py`, `github_pr_agent.py`, `main_agent.py`
 
-**Steps:**
-1. Go to [console.anthropic.com](https://console.anthropic.com)
+Steps:
+1. Go to https://console.anthropic.com
 2. Sign up or log in
-3. Click your profile (top right) → **API Keys**
-4. Click **Create Key**
+3. Click your profile (top right) → API Keys
+4. Click Create Key
 5. Name it: `agents-key`
-6. Click **Create Key**
-7. **Copy the key immediately** — shown only once!
+6. Click Create Key
+7. Copy the key immediately — shown only once
 
 ```
 Format: sk-ant-api03-xxxxxxxxxxxxxxxxxxxxxxxx
 Starts with: sk-ant-
 ```
 
-> Free tier includes $5 credits. No credit card needed to start.
+Free tier includes $5 credits. No credit card needed to start.
 
 ---
 
@@ -50,28 +76,28 @@ Starts with: sk-ant-
 
 Used by: `sonar_agent.py` (all 4 SonarCloud tools)
 
-**Steps:**
-1. Go to [sonarcloud.io](https://sonarcloud.io)
+Steps:
+1. Go to https://sonarcloud.io
 2. Log in with your GitHub account
-3. Click your **avatar** (top right) → **My Account**
-4. Click the **Security** tab
-5. Under **Generate Tokens**, type name: `agents-token`
-6. Click **Generate**
-7. **Copy the token immediately** — shown only once!
+3. Click your avatar (top right) → My Account
+4. Click the Security tab
+5. Under Generate Tokens, type name: `agents-token`
+6. Click Generate
+7. Copy the token immediately — shown only once
 
 ```
 Format: sqp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 Starts with: sqp_
 ```
 
-**Also find your SonarCloud Project Key:**
+Also find your SonarCloud Project Key:
 1. Go to your project on SonarCloud
-2. Click **Project Information** (bottom left sidebar)
-3. Copy the **Project Key** shown there
+2. Click Project Information (bottom left sidebar)
+3. Copy the Project Key shown there
 
 ```
 Format: owner_reponame
-Example: srivalligade04_XXprojKeyXX
+Example: srivalligade04_ml-for-java-professionals
 ```
 
 ---
@@ -80,17 +106,14 @@ Example: srivalligade04_XXprojKeyXX
 
 Used by: `github_pr_agent.py` (all 7 GitHub tools) + git push authentication
 
-**Steps:**
-1. Go to [github.com/settings/tokens](https://github.com/settings/tokens)
-2. Click **Generate new token (classic)**
+Steps:
+1. Go to https://github.com/settings/tokens
+2. Click Generate new token (classic)
 3. Name it: `agents-token`
-4. Set expiration: **90 days**
-5. Check these scopes:
-   - ✅ `repo` (full repository access)
-   - ✅ `workflow`
-   - ✅ `read:org`
-6. Click **Generate token**
-7. **Copy the token immediately** — shown only once!
+4. Set expiration: 90 days
+5. Check these scopes: repo, workflow, read:org
+6. Click Generate token
+7. Copy the token immediately — shown only once
 
 ```
 Format: ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -99,15 +122,15 @@ Starts with: ghp_
 
 ---
 
-### 1.4 Token Summary Table
+### 1.4 Token Summary
 
 | Token | Used For | Where to Get | Format |
 |-------|----------|--------------|--------|
-| `ANTHROPIC_API_KEY` | Claude AI (all agents) | console.anthropic.com | `sk-ant-...` |
-| `SONARCLOUD_TOKEN` | SonarCloud tools | sonarcloud.io → My Account → Security | `sqp_...` |
-| `GITHUB_TOKEN` | GitHub PR tools + git push | github.com/settings/tokens | `ghp_...` |
+| ANTHROPIC_API_KEY | Claude AI (all agents) | console.anthropic.com | sk-ant-... |
+| SONARCLOUD_TOKEN | SonarCloud tools | sonarcloud.io → My Account → Security | sqp_... |
+| GITHUB_TOKEN | GitHub PR tools + git push | github.com/settings/tokens | ghp_... |
 
-> ⚠️ **Never share these tokens publicly or commit them to GitHub**
+Never share these tokens publicly or commit them to GitHub.
 
 ---
 
@@ -115,27 +138,31 @@ Starts with: ghp_
 
 Claude is the AI brain that orchestrates all 11 tools.
 
-### 2.1 What Claude Does in This Project
+### What Claude Does in This Project
 
 ```
 You ask a question
-      ↓
+      |
+      v
 Claude decides which tools to call
-      ↓
+      |
+      v
 Tools fetch real data (GitHub API / SonarCloud API)
-      ↓
+      |
+      v
 Claude analyzes all results
-      ↓
+      |
+      v
 Claude writes a structured report
 ```
 
-### 2.2 Claude Model Used
+### Claude Model Used
 
-All agents use: **claude-sonnet-4-20250514**
+All agents use: `claude-sonnet-4-20250514`
 
-This is the recommended model — fast, smart, cost-efficient for agentic tasks.
+This is the recommended model — fast, smart, and cost-efficient for agentic tasks.
 
-### 2.3 How Claude Is Called (API)
+### How Claude Is Called
 
 ```python
 import anthropic
@@ -150,43 +177,37 @@ response = client.messages.create(
 )
 ```
 
-### 2.4 Agentic Loop Explained
+### The Agentic Loop
+
+Claude runs in a loop — calling tools, getting results, deciding if it needs more data, and finally writing the report when it has everything.
 
 ```
-┌─────────────────────────────────────────┐
-│  User sends prompt                      │
-└──────────────┬──────────────────────────┘
-               ↓
-┌─────────────────────────────────────────┐
-│  Claude thinks: which tools do I need?  │
-└──────────────┬──────────────────────────┘
-               ↓
-┌─────────────────────────────────────────┐
-│  Claude calls tool(s)                   │
-│  e.g. get_sonar_branch_health()         │
-└──────────────┬──────────────────────────┘
-               ↓
-┌─────────────────────────────────────────┐
-│  Tool results sent back to Claude       │
-└──────────────┬──────────────────────────┘
-               ↓
-┌─────────────────────────────────────────┐
-│  Claude calls more tools if needed      │
-│  (loops until stop_reason = end_turn)   │
-└──────────────┬──────────────────────────┘
-               ↓
-┌─────────────────────────────────────────┐
-│  Claude writes final report             │
-└─────────────────────────────────────────┘
+User sends prompt
+      |
+      v
+Claude thinks: which tools do I need?
+      |
+      v
+Claude calls tool(s) — e.g. get_sonar_branch_health()
+      |
+      v
+Tool results sent back to Claude
+      |
+      v
+Claude calls more tools if needed
+(loops until stop_reason = end_turn)
+      |
+      v
+Claude writes final report
 ```
 
 ---
 
 ## 3. Python Setup
 
-### 3.1 Install Python
+### Install Python
 
-Download Python 3.10 or higher from [python.org/downloads](https://python.org/downloads)
+Download Python 3.10 or higher from https://python.org/downloads
 
 Verify installation:
 ```bash
@@ -194,7 +215,7 @@ python --version
 # Should show: Python 3.10.x or higher
 ```
 
-### 3.2 Install Required Libraries
+### Install Required Libraries
 
 ```bash
 pip install anthropic requests python-dotenv
@@ -202,11 +223,11 @@ pip install anthropic requests python-dotenv
 
 | Library | Purpose |
 |---------|---------|
-| `anthropic` | Calls Claude API |
-| `requests` | Calls GitHub API and SonarCloud API |
-| `python-dotenv` | Reads `.env` file for API keys |
+| anthropic | Calls Claude API |
+| requests | Calls GitHub API and SonarCloud API |
+| python-dotenv | Reads .env file for API keys |
 
-### 3.3 Create Your `.env` File
+### Create Your .env File
 
 In your project folder, create a file named `.env`:
 
@@ -216,91 +237,90 @@ SONARCLOUD_TOKEN=sqp_your-token-here
 GITHUB_TOKEN=ghp_your-token-here
 ```
 
-> ⚠️ No quotes, no spaces around `=`
+No quotes, no spaces around the equals sign.
 
 ---
 
 ## 4. PyCharm Setup
 
-### 4.1 Download and Install PyCharm
+### Download and Install PyCharm
 
-1. Go to [jetbrains.com/pycharm/download](https://jetbrains.com/pycharm/download)
-2. Download **PyCharm Community Edition** (free)
+1. Go to https://jetbrains.com/pycharm/download
+2. Download PyCharm Community Edition (free)
 3. Install and open PyCharm
 
-### 4.2 Create a New Project
+### Create a New Project
 
 1. Open PyCharm
-2. Click **New Project**
+2. Click New Project
 3. Choose folder: `PycharmProjects/github_mcp_server_python`
-4. Select **New environment using Virtualenv**
-5. Click **Create**
+4. Select New environment using Virtualenv
+5. Click Create
 
-### 4.3 Set Up Python Interpreter
+### Set Up Python Interpreter
 
-1. Go to **File → Settings → Project → Python Interpreter**
-2. Click **Add Interpreter → Add Local Interpreter**
-3. Select **Virtualenv Environment**
-4. Click **OK**
+1. Go to File → Settings → Project → Python Interpreter
+2. Click Add Interpreter → Add Local Interpreter
+3. Select Virtualenv Environment
+4. Click OK
 
-### 4.4 Open Terminal in PyCharm
+### Open Terminal in PyCharm
 
-Press `Alt+F12` (Windows/Linux) or `Option+F12` (Mac)
+Press `Alt+F12` on Windows/Linux or `Option+F12` on Mac.
 
-Install dependencies in the terminal:
 ```bash
 pip install anthropic requests python-dotenv
 ```
 
-### 4.5 Connect PyCharm to GitHub
+### Connect PyCharm to GitHub
 
-1. Go to **File → Settings → Version Control → GitHub**
-2. Click **+** → **Log in with Token**
-3. Paste your GitHub PAT (`ghp_...`)
-4. Click **Add Account**
+1. Go to File → Settings → Version Control → GitHub
+2. Click + → Log in with Token
+3. Paste your GitHub PAT (ghp_...)
+4. Click Add Account
 
 ---
 
-## 5. MCP Server Setup
+## 5. MCP Server and Tools
 
-### 5.1 What is an MCP Server?
+### What is an MCP Server?
 
 MCP (Model Context Protocol) is a standard that lets Claude call external tools — like GitHub APIs and SonarCloud APIs — in a structured way.
 
 ```
 Claude (AI brain)
-      ↕
+      |
 MCP Server (tool connector)
-      ↕
+      |
 External APIs (GitHub, SonarCloud)
 ```
 
-### 5.2 MCP Tools Available (11 total)
+### All 11 Tools
 
 #### SonarCloud Tools (4)
 
 | Tool | What It Does |
 |------|-------------|
-| `get_sonar_branch_health` | Main branch health: bugs, smells, ratings A–E |
-| `get_sonar_pr_issues` | New issues a PR introduces (file + line) |
-| `get_sonar_pr_quality` | Quality gate PASSED/FAILED for a PR |
-| `get_sonar_pr_vs_main` | Side-by-side PR vs main branch comparison |
+| get_sonar_branch_health | Main branch health: bugs, smells, ratings A-E |
+| get_sonar_pr_issues | New issues a PR introduces with file and line number |
+| get_sonar_pr_quality | Quality gate PASSED/FAILED for a PR |
+| get_sonar_pr_vs_main | Side-by-side PR vs main branch comparison |
 
 #### GitHub PR Tools (7)
 
 | Tool | What It Does |
 |------|-------------|
-| `get_pr_summary` | PR counts, merge rate, avg merge time |
-| `list_open_prs` | All open PRs with age, author, draft status |
-| `get_stale_prs` | PRs with no activity for 14+ days |
-| `get_pr_merge_time_trend` | Weekly trend of PR volume and merge speed |
-| `get_pr_review_stats` | Reviewer leaderboard, approval rates |
-| `get_contributor_pr_stats` | Per-author breakdown of PRs |
-| `get_pr_detail` | Deep analytics for a single PR |
+| get_pr_summary | PR counts, merge rate, avg merge time |
+| list_open_prs | All open PRs with age, author, draft status |
+| get_stale_prs | PRs with no activity for 14+ days |
+| get_pr_merge_time_trend | Weekly trend of PR volume and merge speed |
+| get_pr_review_stats | Reviewer leaderboard, approval rates |
+| get_contributor_pr_stats | Per-author breakdown of PRs |
+| get_pr_detail | Deep analytics for a single PR |
 
-### 5.3 How Tools Are Defined (Tool Schema)
+### How Tools Are Defined
 
-Each tool is defined with a name, description, and input parameters:
+Each tool has a name, description, and input parameters. Claude reads these and knows exactly what to pass in.
 
 ```python
 {
@@ -319,56 +339,52 @@ Each tool is defined with a name, description, and input parameters:
 }
 ```
 
-Claude reads these definitions and knows exactly what parameters each tool needs.
-
 ---
 
 ## 6. Project Structure
 
-Your final project folder should look like this:
-
 ```
 github_mcp_server_python/
-│
-├── .env                    ← API keys (NEVER commit to GitHub)
-├── .gitignore              ← tells git to ignore .env
-│
-├── sonar_agent.py          ← SonarCloud agent (4 tools)
-├── github_pr_agent.py      ← GitHub PR agent (7 tools)
-├── main_agent.py           ← Main orchestrator (all 11 tools)
-├── run.py                  ← Launcher — run this!
-│
-├── raw_results_pr11.json   ← generated after running (raw tool data)
-└── report_pr11.md          ← generated after running (AI report)
+|
+|-- .env                    (your API keys — never commit this)
+|-- .gitignore              (tells git to ignore .env)
+|
+|-- sonar_agent.py          (SonarCloud agent — 4 tools)
+|-- github_pr_agent.py      (GitHub PR agent — 7 tools)
+|-- main_agent.py           (Main orchestrator — all 11 tools)
+|-- run.py                  (Launcher — run this)
+|
+|-- raw_results_pr11.json   (generated after running — raw tool data)
+|-- report_pr11.md          (generated after running — AI report)
 ```
 
 ---
 
 ## 7. Agent Explanations
 
-### 7.1 `sonar_agent.py` — SonarCloud Agent
+### sonar_agent.py — SonarCloud Agent
 
-**Purpose:** Analyzes code quality using SonarCloud
+Purpose: Analyzes code quality using SonarCloud.
 
-**Tools it uses:** 4 SonarCloud tools
+Tools it uses: get_sonar_branch_health, get_sonar_pr_issues, get_sonar_pr_quality, get_sonar_pr_vs_main.
 
-**What it does:**
-- Connects to SonarCloud API using your `SONARCLOUD_TOKEN`
-- Fetches bugs, vulnerabilities, code smells, coverage for your main branch
+What it does:
+- Connects to SonarCloud API using your SONARCLOUD_TOKEN
+- Fetches bugs, vulnerabilities, code smells, and coverage for your main branch
 - Checks if a PR passes the quality gate
 - Lists every new issue a PR introduces with exact file and line number
 - Compares PR quality vs main branch
 
-**Example output:**
+Example output:
 ```
-Bugs: 0        → Rating: A
-Vulnerabilities: 0  → Rating: A
-Code Smells: 78    → Rating: B
+Bugs: 0             Rating: A
+Vulnerabilities: 0  Rating: A
+Code Smells: 78     Rating: B
 Coverage: N/A
 Duplications: 0.0%
 ```
 
-**Run standalone:**
+Run standalone:
 ```bash
 python sonar_agent.py \
   --project srivalligade04_ml-for-java-professionals \
@@ -377,30 +393,21 @@ python sonar_agent.py \
 
 ---
 
-### 7.2 `github_pr_agent.py` — GitHub PR Agent
+### github_pr_agent.py — GitHub PR Agent
 
-**Purpose:** Analyzes PR process health on GitHub
+Purpose: Analyzes PR process health on GitHub.
 
-**Tools it uses:** 7 GitHub PR tools
+Tools it uses: get_pr_summary, list_open_prs, get_stale_prs, get_pr_merge_time_trend, get_pr_review_stats, get_contributor_pr_stats, get_pr_detail.
 
-**What it does:**
+What it does:
 - Fetches all open PRs and their age
-- Finds stale PRs (no activity for 14+ days)
+- Finds stale PRs with no activity for 14+ days
 - Shows weekly trend of how fast PRs are being merged
-- Shows reviewer leaderboard (who reviews most, approval rates)
-- Shows per-contributor breakdown (who opens/merges most PRs)
-- Deep analysis of a single PR (commits, files, review timeline)
+- Shows reviewer leaderboard — who reviews most and approval rates
+- Shows per-contributor breakdown of who opens and merges most PRs
+- Deep analysis of a single PR including commits, files, and review timeline
 
-**Example output:**
-```
-Open PRs: 3
-Merged this month: 8
-Avg merge time: 4.2 hours
-Stale PRs: 1 (PR #5 — no activity for 18 days)
-Top reviewer: srivalligade04 (12 reviews, 92% approval)
-```
-
-**Run standalone:**
+Run standalone:
 ```bash
 python github_pr_agent.py \
   --repo srivalligade04/github_mcp_server_python \
@@ -409,23 +416,23 @@ python github_pr_agent.py \
 
 ---
 
-### 7.3 `main_agent.py` — Main Orchestrator Agent
+### main_agent.py — Main Orchestrator Agent
 
-**Purpose:** Combines all 11 tools into one complete analysis
+Purpose: Combines all 11 tools into one complete analysis.
 
-**Tools it uses:** All 4 SonarCloud + All 7 GitHub = 11 tools total
+Tools it uses: All 4 SonarCloud + All 7 GitHub = 11 tools total.
 
-**What it does:**
-- Imports tools from both `sonar_agent.py` and `github_pr_agent.py`
+What it does:
+- Imports tools from both sonar_agent.py and github_pr_agent.py
 - Sends one prompt to Claude with all 11 tools available
 - Claude intelligently decides which tools to call and in what order
 - Synthesizes all results into a 4-section structured report:
   1. Code Quality (SonarCloud)
   2. PR Process Health (GitHub)
   3. Team Performance
-  4. Risk & Recommendations
+  4. Risk and Recommendations
 
-**Run standalone:**
+Run standalone:
 ```bash
 python main_agent.py \
   --repo    srivalligade04/github_mcp_server_python \
@@ -435,28 +442,30 @@ python main_agent.py \
 
 ---
 
-### 7.4 `run.py` — Launcher
+### run.py — Launcher
 
-**Purpose:** Easiest way to run everything
+Purpose: The easiest way to run everything with one command.
 
-**What it does:**
-1. Loads `.env` file automatically
+What it does:
+1. Loads .env file automatically
 2. Runs all 11 tools individually and prints raw results
 3. Runs the main agent for AI-synthesized summary
-4. Saves two files:
-   - `raw_results_pr11.json` — raw JSON from every tool
-   - `report_pr11.md` — AI-written summary report
+4. Saves two output files
 
-**Run:**
+Run:
 ```bash
 python run.py
 ```
+
+Output files saved:
+- `raw_results_pr11.json` — raw JSON from every tool
+- `report_pr11.md` — AI-written summary report
 
 ---
 
 ## 8. Run Your Agents
 
-### 8.1 First Time Setup (run once)
+### First Time Setup
 
 ```bash
 # Navigate to your project
@@ -471,75 +480,67 @@ echo "SONARCLOUD_TOKEN=sqp_your-token" >> .env
 echo "GITHUB_TOKEN=ghp_your-token" >> .env
 ```
 
-### 8.2 Run the Full Agent
+### Run the Full Agent
 
 ```bash
 python run.py
 ```
 
-### 8.3 What You'll See
+### What You Will See
 
 ```
-████ RUNNING ALL 11 TOOLS INDIVIDUALLY ████
+RUNNING ALL 11 TOOLS INDIVIDUALLY
 
->>> SONARCLOUD TOOLS (4)
-=== TOOL: get_sonar_branch_health ===
+SONARCLOUD TOOLS (4)
+TOOL: get_sonar_branch_health
 { "bugs": 0, "code_smells": 78, "reliability_rating": "A" ... }
 
-=== TOOL: get_sonar_pr_issues ===
+TOOL: get_sonar_pr_issues
 { "total_issues": 0, "issues": [] }
 
->>> GITHUB PR TOOLS (7)
-=== TOOL: get_pr_summary ===
-{ "open_count": 3, "merged_count": 8, "merge_rate": "73%" }
+GITHUB PR TOOLS (7)
+TOOL: get_pr_summary
+{ "open_count": 1, "merged_count": 1, "merge_rate": "50%" }
 
 ... (all 11 tools) ...
 
-████ RUNNING MAIN AGENT — AI SUMMARY ████
-  → Calling: get_sonar_branch_health(...)
-  → Calling: get_pr_summary(...)
-  → Calling: get_contributor_pr_stats(...)
-  ... (Claude calls tools automatically) ...
+RUNNING MAIN AGENT — AI SUMMARY
+  -> Calling: get_sonar_branch_health(...)
+  -> Calling: get_pr_summary(...)
+  -> Calling: get_contributor_pr_stats(...)
 
-# Code Quality Report — PR #11
-...
-✓ Report saved to report_pr11.md
+Report saved to report_pr11.md
 ```
 
-### 8.4 Change PR Number
+### Change PR Number
 
-Edit line 16 in `run.py`:
+Edit line 16 in run.py:
 ```python
-PR_NUMBER = 11   # ← change to any PR number
+PR_NUMBER = 11   # change to any PR number
 ```
 
 ---
 
 ## 9. Push to GitHub
 
-### 9.1 First Time Push
+### First Time Push
 
 ```bash
 cd /Users/venka/PycharmProjects/github_mcp_server_python
 
-# Initialize git
 git init
 
-# Add remote (use your token in URL to avoid password prompts)
 git remote add origin https://ghp_YOUR_TOKEN@github.com/srivalligade04/github_mcp_server_python.git
 
-# Add files (NOT .env — that stays local)
-git add sonar_agent.py github_pr_agent.py main_agent.py run.py .gitignore
+git add sonar_agent.py github_pr_agent.py main_agent.py run.py .gitignore README.md
 
-# Commit
 git commit -m "Add SonarCloud and GitHub PR agents"
 
-# Push
 git branch -M main
 git push -u origin main
 ```
 
-### 9.2 Future Pushes (after making changes)
+### Future Pushes
 
 ```bash
 git add .
@@ -547,7 +548,7 @@ git commit -m "Your commit message"
 git push
 ```
 
-### 9.3 Save Credentials (so you're never asked again)
+### Save Credentials
 
 ```bash
 git config --global credential.helper osxkeychain   # Mac
@@ -560,14 +561,42 @@ git config --global credential.helper manager       # Windows
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| `ANTHROPIC_API_KEY not set` | .env not loaded | Add `load_dotenv()` at top of script |
-| `Remote: Write access denied` | Wrong GitHub token | Regenerate PAT with `repo` scope |
-| `Repository not found` | Wrong repo name | Check exact name on github.com |
-| `SonarCloud 404` | Wrong project key | Get key from SonarCloud → Project Information |
-| `fatal: pathspec did not match` | Wrong directory | `cd` into your project folder first |
-| `non-fast-forward` push error | Branch diverged | Run `git push origin main --force` |
-| `pip: command not found` | Python not in PATH | Use `python -m pip install ...` |
-| `ModuleNotFoundError: anthropic` | Not installed | Run `pip install anthropic` |
+| ANTHROPIC_API_KEY not set | .env not loaded | Add load_dotenv() at top of script |
+| Remote: Write access denied | Wrong GitHub token | Regenerate PAT with repo scope |
+| Repository not found | Wrong repo name | Check exact name on github.com |
+| SonarCloud 404 | Wrong project key | Get key from SonarCloud → Project Information |
+| fatal: pathspec did not match | Wrong directory | cd into your project folder first |
+| non-fast-forward push error | Branch diverged | Run git push origin main --force |
+| pip: command not found | Python not in PATH | Use python -m pip install ... |
+| ModuleNotFoundError: anthropic | Not installed | Run pip install anthropic |
+
+---
+
+## 11. Sample Output
+
+```
+Bugs:               0    Reliability Rating:      A
+Vulnerabilities:    0    Security Rating:         A
+Code Smells:       78    Maintainability Rating:  B
+Security Hotspots:  0
+Duplications:     0.0%
+
+Open PRs:   1
+Merged PRs: 1
+Merge Rate: 50%
+
+PR #2 — Update github_pr_mcp_server.py
+Author: srivalligade04 | Age: 21 hours | Awaiting review
+```
+
+---
+
+## 12. What to Build Next
+
+- GitHub Actions workflow to run the agent automatically on every pull request
+- PR comment bot that posts the quality report directly on the PR page
+- Slack notification when a quality gate fails
+- Weekly email digest of team PR performance trends
 
 ---
 
@@ -597,4 +626,9 @@ Sonar Project: srivalligade04_github_mcp_server_python
 
 ---
 
-*Generated with Claude Sonnet — Anthropic*
+## Author
+
+Built by srivalligade04 taking help from Claude (Anthropic) as coding assistant, SonarCloud, and the GitHub API.
+
+If this helped you, follow on GitHub and read the full walkthrough on Medium.
+
